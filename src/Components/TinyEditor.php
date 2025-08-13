@@ -2,15 +2,19 @@
 
 namespace Mohamedsabil83\FilamentFormsTinyeditor\Components;
 
+use Filament\Forms\Components\Contracts\CanBeLengthConstrained;
+use Filament\Forms\Components\Contracts\HasFileAttachments;
+use Filament\Forms\Components\Concerns\HasPlaceholder;
+use Closure;
 use Filament\Forms\Components\Concerns;
 use Filament\Forms\Components\Contracts;
 use Filament\Forms\Components\Field;
 
-class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Contracts\HasFileAttachments
+class TinyEditor extends Field implements CanBeLengthConstrained, HasFileAttachments
 {
     use Concerns\CanBeLengthConstrained;
     use Concerns\HasFileAttachments;
-    use Concerns\HasPlaceholder;
+    use HasPlaceholder;
 
     protected string $view = 'filament-forms-tinyeditor::tiny-editor';
 
@@ -33,7 +37,7 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
 
     protected string $toolbar;
 
-    protected string|\Closure $language;
+    protected string|Closure $language;
 
     protected bool $toolbarSticky = false;
 
@@ -295,7 +299,7 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
         return (bool) $this->evaluate($this->isSimple);
     }
 
-    public function language(string|\Closure $language): static
+    public function language(string|Closure $language): static
     {
         $this->language = $language;
 
