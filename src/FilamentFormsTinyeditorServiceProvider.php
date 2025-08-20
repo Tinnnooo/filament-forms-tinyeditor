@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohamedsabil83\FilamentFormsTinyeditor;
+namespace Noin\FilamentFormsTinyeditor;
 
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
@@ -28,7 +28,7 @@ class FilamentFormsTinyeditorServiceProvider extends PackageServiceProvider
     {
         FilamentAsset::register([
             Js::make('tinymce', 'https://cdn.jsdelivr.net/npm/tinymce@5.10.7/tinymce.min.js'),
-            Js::make('tiny-editor', __DIR__.'/../resources/dist/js/tiny-editor.js'),
+            Js::make('tiny-editor', __DIR__ . '/../resources/dist/js/tiny-editor.js'),
             Js::make('tinymce-lang-ar', 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.7.24/langs5/ar.min.js')->loadedOnRequest(),
             Js::make('tinymce-lang-az', 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.7.24/langs5/az.min.js')->loadedOnRequest(),
             Js::make('tinymce-lang-bg_BG', 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.7.24/langs5/bg_BG.min.js')->loadedOnRequest(),
@@ -95,6 +95,6 @@ class FilamentFormsTinyeditorServiceProvider extends PackageServiceProvider
             Js::make('tinymce-lang-vi', 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.7.24/langs5/vi.min.js')->loadedOnRequest(),
             Js::make('tinymce-lang-zh_CN', 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.7.24/langs5/zh_CN.min.js')->loadedOnRequest(),
             Js::make('tinymce-lang-zh_TW', 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.7.24/langs5/zh_TW.min.js')->loadedOnRequest(),
-        ], package: 'mohamedsabil83/filament-forms-tinyeditor');
+        ], package: 'noin/filament-forms-tinyeditor');
     }
 }

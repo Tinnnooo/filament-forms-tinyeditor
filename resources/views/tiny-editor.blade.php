@@ -5,7 +5,7 @@
 >
     <div
         x-data="{ state: $wire.entangle('{{ $getStatePath() }}'), initialized: false }"
-        x-load-js="[@js(\Filament\Support\Facades\FilamentAsset::getScriptSrc($getLanguageId(), 'mohamedsabil83/filament-forms-tinyeditor'))]"
+        x-load-js="[@js(\Filament\Support\Facades\FilamentAsset::getScriptSrc($getLanguageId(), 'noin/filament-forms-tinyeditor'))]"
         x-init="(() => {
             $nextTick(() => {
                 tinymce.createEditor('tiny-editor-{{ $getId() }}', {
