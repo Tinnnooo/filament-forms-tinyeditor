@@ -5,7 +5,7 @@
 >
     <div
         x-data="{ state: $wire.entangle('{{ $getStatePath() }}'), initialized: false }"
-        x-load-js="[@js(\Filament\Support\Facades\FilamentAsset::getScriptSrc($getLanguageId(), 'mohamedsabil83/filament-forms-tinyeditor'))]"
+        x-load-js="[@js(\Filament\Support\Facades\FilamentAsset::getScriptSrc($getLanguageId(), 'noin/filament-forms-tinyeditor'))]"
         x-init="(() => {
             $nextTick(() => {
                 tinymce.createEditor('tiny-editor-{{ $getId() }}', {
@@ -167,7 +167,7 @@
                     'max-height: '.$getPreviewMaxHeight().'px' => $getPreviewMaxHeight() > 0,
                     'min-height: '.$getPreviewMinHeight().'px' => $getPreviewMinHeight() > 0,
                 ])
-                class="block w-full max-w-none rounded-lg border border-gray-300 bg-white p-3 opacity-70 shadow-sm transition duration-75 prose dark:prose-invert dark:border-gray-600 dark:bg-gray-700 dark:text-white overflow-y-auto"
+                class="block w-full p-3 overflow-y-auto prose transition duration-75 bg-white border border-gray-300 rounded-lg shadow-sm max-w-none opacity-70 dark:prose-invert dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             ></div>
         @endunless
     </div>

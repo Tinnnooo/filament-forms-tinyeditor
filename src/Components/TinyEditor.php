@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohamedsabil83\FilamentFormsTinyeditor\Components;
+namespace Noin\FilamentFormsTinyeditor\Components;
 
 use Filament\Forms\Components\Concerns;
 use Filament\Forms\Components\Contracts;

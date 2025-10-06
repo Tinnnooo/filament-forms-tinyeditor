@@ -1,5 +1,5 @@
 <?php
 
-use Mohamedsabil83\FilamentFormsTinyeditor\Tests\TestCase;
+use Noin\FilamentFormsTinyeditor\Tests\TestCase;
 
 uses(TestCase::class)->in(__DIR__);
