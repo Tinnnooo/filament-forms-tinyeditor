@@ -1,174 +1,106 @@
-<x-dynamic-component
-    :component="$getFieldWrapperView()"
-    :field="$field"
-    class="relative z-0"
->
+@php
+    $statePath = $getStatePath();
+    $textareaID = 'tiny-editor-'.str_replace(['.','#','$'], '-', $getId().'-'.rand());
+@endphp
+<x-dynamic-component :component="$getFieldWrapperView()" :field="$field" class="relative z-0">
     <div
-        x-data="{ state: $wire.entangle('{{ $getStatePath() }}'), initialized: false }"
-        x-load-js="[@js(\Filament\Support\Facades\FilamentAsset::getScriptSrc($getLanguageId(), 'noin/filament-forms-tinyeditor'))]"
-        x-init="(() => {
-            $nextTick(() => {
-                tinymce.createEditor('tiny-editor-{{ $getId() }}', {
-                    target: $refs.tinymce,
-                    deprecation_warnings: false,
-                    language: '{{ $getInterfaceLanguage() }}',
-                    language_url: 'https://cdn.jsdelivr.net/npm/tinymce-i18n@23.7.24/langs5/{{ $getInterfaceLanguage() }}.min.js',
-                    toolbar_sticky: {{ $getToolbarSticky() ? 'true' : 'false' }},
-                    toolbar_sticky_offset: 64,
-                    skin: {
-                        light: 'oxide',
-                        dark: 'oxide-dark',
-                        system: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oxide-dark' : 'oxide',
-                    }[typeof theme === 'undefined' ? 'light' : theme],
-                    content_css: {
-                        light: 'default',
-                        dark: 'dark',
-                        system: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default',
-                    }[typeof theme === 'undefined' ? 'light' : theme],
-                    max_height: {{ $getMaxHeight() }},
-                    min_height: {{ $getMinHeight() }},
-                    menubar: {{ $getShowMenuBar() ? 'true' : 'false' }},
-                    plugins: ['{{ $getPlugins() }}'],
-                    external_plugins: @js($getExternalPlugins()),
-                    toolbar: '{{ $getToolbar() }}',
-                    toolbar_mode: 'sliding',
-                    document_base_url: '{{ $getDocumentBaseUrl() }}',
-                    relative_urls: {{ $getRelativeUrls() ? 'true' : 'false' }},
-                    remove_script_host: {{ $getRemoveScriptHost() ? 'true' : 'false' }},
-                    convert_urls: {{ $getConvertUrls() ? 'true' : 'false' }},
-                    branding: false,
-                    images_upload_handler: (blobInfo, success, failure, progress) => {
-                        if (!blobInfo.blob()) return
-
-                        $wire.upload(`componentFileAttachments.{{ $getStatePath() }}`, blobInfo.blob(), () => {
-                            $wire.getFormComponentFileAttachmentUrl('{{ $getStatePath() }}').then((url) => {
-                                if (!url) {
-                                    failure('{{ __('Error uploading file') }}')
-                                    return
-                                }
-                                success(url)
-                            })
-                        })
-                    },
-                    file_picker_callback: (cb, value, meta) => {
-                        const input = document.createElement('input');
-                        input.setAttribute('type', 'file');
-                        input.addEventListener('change', (e) => {
-                            const file = e.target.files[0];
-                            const reader = new FileReader();
-                            reader.addEventListener('load', () => {
-                                $wire.upload(`componentFileAttachments.{{ $getStatePath() }}`, file, () => {
-                                    $wire.getFormComponentFileAttachmentUrl('{{ $getStatePath() }}').then((url) => {
-                                        if (!url) {
-                                            cb('{{ __('Error uploading file') }}')
-                                            return
-                                        }
-                                        cb(url)
-                                    })
-                                })
-                            });
-                            reader.readAsDataURL(file);
-                        });
-
-                        input.click();
-                    },
-                    automatic_uploads: true,
-                    templates: {{ $getTemplate() }},
-                    setup: function(editor) {
-                        if(!window.tinySettingsCopy) {
-                            window.tinySettingsCopy = [];
-                        }
-
-                        if (!window.tinySettingsCopy.some(obj => obj.id === editor.settings.id)) {
-                            window.tinySettingsCopy.push(editor.settings);
-                        }
-
-                        editor.on('blur', function(e) {
-                            state = editor.getContent()
-                        })
-
-                        editor.on('init', function(e) {
-                            if (state != null) {
-                                editor.setContent(state)
-                            }
-                        })
-
-                        editor.on('OpenWindow', function(e) {
-                            target = e.target.container.closest('.fi-modal')
-                            if (target) target.setAttribute('x-trap.noscroll', 'false')
-
-                            target = e.target.container.closest('.jetstream-modal')
-                            if (target) {
-                                targetDiv = target.children[1]
-                                targetDiv.setAttribute('x-trap.inert.noscroll', 'false')
-                            }
-                        })
-
-                        editor.on('CloseWindow', function(e) {
-                            target = e.target.container.closest('.fi-modal')
-                            if (target) target.setAttribute('x-trap.noscroll', 'isOpen')
-
-                            target = e.target.container.closest('.jetstream-modal')
-                            if (target) {
-                                targetDiv = target.children[1]
-                                targetDiv.setAttribute('x-trap.inert.noscroll', 'show')
-                            }
-                        })
-
-                        function putCursorToEnd() {
-                            editor.selection.select(editor.getBody(), true);
-                            editor.selection.collapse(false);
-                        }
-
-                        $watch('state', function(newstate) {
-                            // unfortunately livewire doesn't provide a way to 'unwatch' so this listener sticks
-                            // around even after this component is torn down. Which means that we need to check
-                            // that editor.container exists. If it doesn't exist we do nothing because that means
-                            // the editor was removed from the DOM
-                            if (editor.container && newstate !== editor.getContent()) {
-                                editor.resetContent(newstate || '');
-                                putCursorToEnd();
-                            }
-                        });
-                    },
-                    {{ $getCustomConfigs() }}
-                }).render();
-            });
-
-            // We initialize here because if the component is first loaded from within a modal DOMContentLoaded
-            // won't fire and if we want to register a Livewire.hook listener Livewire.hook isn't available from
-            // inside the once body
-            if (!window.tinyMceInitialized) {
-                window.tinyMceInitialized = true;
-                $nextTick(() => {
-                    Livewire.hook('morph.removed', (el, component) => {
-                        if (el.el.nodeName === 'INPUT' && el.el.getAttribute('x-ref') === 'tinymce') {
-                            tinymce.get(el.el.id)?.remove();
-                        }
-                    });
-                });
-            }
-        })()"
-        x-cloak
-        class="overflow-hidden"
         wire:ignore
-    >
-        @unless($isDisabled())
-            <input
-                id="tiny-editor-{{ $getId() }}"
-                type="hidden"
-                x-ref="tinymce"
-                placeholder="{{ $getPlaceholder() }}"
-            >
+        x-ignore
+        x-load
+        x-cloak
+        x-load-src="{{ \Filament\Support\Facades\FilamentAsset::getAlpineComponentSrc('tinymce-editor', 'noin/filament-forms-tinyeditor') }}"
+        x-load-js="[@js(\Filament\Support\Facades\FilamentAsset::getScriptSrc($getLanguageId(), 'noin/filament-forms-tinyeditor'))]"
+        x-load-css="[@js(\Filament\Support\Facades\FilamentAsset::getStyleHref('tinymce-editor', 'noin/filament-forms-tinyeditor'))]"
+        x-data="tinymceEditor({
+            state: $wire.{{ $applyStateBindingModifiers("entangle('{$statePath}')", isOptimisticallyLive: false) }},
+            statePath: '{{ $statePath }}',
+            selector: '#{{ $textareaID }}',
+            plugins: '{{ $getPlugins() }}',
+            external_plugins: {{ $getExternalPlugins() }},
+            toolbar: '{{ $getToolbar() }}',
+            toolbar_groups: @js($getToolbarGroups()),
+            content_style: '{{ $contentStyle() }}',
+            @if(!$getTextPattern())
+                text_patterns @js($getTextPattern()),
+            @endif
+            language: '{{ $getInterfaceLanguage() }}',
+            language_url: '{{ $getLanguageURL($getInterfaceLanguage()) }}',
+            directionality: '{{ $getDirection() }}',
+            @if($getHeight())
+                height: @js($getHeight()),
+            @endif
+            @if($getMaxHeight())
+                max_height: @js($getMaxHeight()),
+            @endif
+            @if ($getMinHeight())
+                min_height: @js($getMinHeight()),
+            @endif
+            @if ($getWidth())
+                width: @js($getWidth()),
+            @endif
+            @if ($getTinyMaxWidth())
+                max_width: @js($getTinyMaxWidth()),
+            @endif
+            @if ($getMinWidth())
+                min_width: @js($getMinWidth()),
+            @endif
+            resize: @js($getResize()),
+            @if(!filament()->hasdarkModeForced() && $darkMode() == 'media')
+                skin: (window.matchMedia('(prefers-color-schema: dark)').matches ? 'oxide-dark' : 'oxide'),
+                content_css: (window.matchMedia('(prefers-color-schema: dark)').matches ? 'dark' : 'default'),
+            @elseif(!filament()->hasDarkModeForced() && $darkMode() == 'class')
+                skin: (document.querySelector('html').getAttribute('class').includes('dark') ? 'oxide-dark' : 'oxide'),
+                content_css: (document.querySelector('html').getAttribute('class').includes('dark') ? 'dark' : 'default'),
+            @elseif(!filament()->hasDarkModeForced() && $darkMode() == 'force')
+                skin: 'oxide-dark',
+                cotent_css: 'default',
+            @elseif(!filament()->hasDarkModeForced() && $darkMode() == false)
+                skin: 'oxide',
+                content_css: 'default',
+            @elseif(!filament()->hasDarkModeForced() && $darkMode() == 'custom')
+                skin: '{{ $skinsUI() }}',
+                content_css: '{{ $skinsContent() }}',
+            @else
+                skin: ((localStorage.getItem('theme') ?? 'system') == 'dark' || (localStorage.getItem('theme') === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) ? 'oxide-dark' : 'oxide',
+                content_css: ((localStorage.getItem('theme') ?? 'system') == 'dark' || (localStorage.getItem('theme') === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) ? 'dark' : 'default',
+            @endif
+            toolbar_sticky: {{ $getToolbarSticky() ? 'true' : 'false' }},
+            toolbar_sticky_offset: {{ $getToolbarStickyOffset() }},
+            toolbar_mode: '{{ $getToolbarMode() }}',
+            toolbar_location: '{{ $getToolbarLocation() }}',
+            inline: {{ $getInlineOption() ? 'true' : 'false' }},
+            toolbar_persist: {{ $getToolbarPersist() ? 'true' : 'false'}},
+            menubar: {{ $getShowMenuBar() ? 'true' : 'false' }},
+            relative_urls: {{ $getRelativeUrls() ? 'true' : 'false' }},
+            remove_script_host: {{ $getRemoveScriptHost() ? 'true' : 'false' }},
+            convert_urls: {{ $getConvertUrls() ? 'true' : 'false' }},
+            font_size_formats: '{{ $getFontSizes() }}',
+            fontfamily: '{{ $getFontFamilies() }}',
+            setup: null,
+            disabled: @js($isDisabled),
+            locale: '{{ app()->getLocale() }}',
+            placeholder: @js($getPlaceholder()),
+            image_list: {!! $getImageList() !!},
+            @if ($getImagesUploadUrl !== false)
+                images_upload_url: @js($getImagesUploadUrl()),
+            @endif
+            image_advtab: @js($isImageAdvtab()),
+            image_description: @js($isImageDescription()),
+            image_class_list: @js($getImageClassList()),
+            license_key: '{{ $getLicenseKey() }}',
+            custom_configs: @js($getCustomConfigs()),
+        })"
+        class="overflow-hidden" wire:ignore>
+        @unless ($isDisabled())
+            <textarea id="{{ $textareaID }}" x-ref="tinymce" placeholder="{{ $getPlaceholder() }}">
+            </textarea>
         @else
-            <div
-                x-html="state"
-                @style([
-                    'max-height: '.$getPreviewMaxHeight().'px' => $getPreviewMaxHeight() > 0,
-                    'min-height: '.$getPreviewMinHeight().'px' => $getPreviewMinHeight() > 0,
-                ])
-                class="block w-full p-3 overflow-y-auto prose transition duration-75 bg-white border border-gray-300 rounded-lg shadow-sm max-w-none opacity-70 dark:prose-invert dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            ></div>
+            <div x-html="state" @style([
+                'max-height: ' . $getPreviewMaxHeight() . 'px' => $getPreviewMaxHeight() > 0,
+                'min-height: ' . $getPreviewMinHeight() . 'px' => $getPreviewMinHeight() > 0,
+            ])
+                class="block w-full p-3 overflow-y-auto prose transition duration-75 bg-white border border-gray-300 rounded-lg shadow-sm max-w-none opacity-70 dark:prose-invert dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+            </div>
         @endunless
     </div>
 </x-dynamic-component>

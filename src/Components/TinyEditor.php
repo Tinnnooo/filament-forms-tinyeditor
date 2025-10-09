@@ -2,52 +2,99 @@
 
 namespace Noin\FilamentFormsTinyeditor\Components;
 
+use Closure;
 use Filament\Forms\Components\Concerns;
+use Filament\Forms\Components\Concerns\HasExtraInputAttributes;
 use Filament\Forms\Components\Contracts;
 use Filament\Forms\Components\Field;
+use Filament\Support\Concerns\HasExtraAlpineAttributes;
+use Noin\FilamentFormsTinyeditor\TinyMce;
 
 class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Contracts\HasFileAttachments
 {
     use Concerns\CanBeLengthConstrained;
     use Concerns\HasFileAttachments;
     use Concerns\HasPlaceholder;
+    use HasExtraAlpineAttributes;
+    use HasExtraInputAttributes;
 
     protected string $view = 'filament-forms-tinyeditor::tiny-editor';
 
+    protected string $profile = 'default';
+
     protected bool $isSimple = false;
 
-    protected bool $showMenuBar = false;
+    protected string $languageVersion;
 
-    protected int $maxHeight = 0;
+    protected string $languagePackage;
 
-    protected int $minHeight = 0;
+    protected string|bool $darkMode;
 
     protected int $previewMaxHeight = 0;
 
     protected int $previewMinHeight = 0;
 
-    // TinyMCE var: external_plugins
     protected array $externalPlugins;
-
-    protected string $profile = 'default';
 
     protected string $toolbar;
 
-    protected string|\Closure $language;
+    protected array $toolbarGroups = [];
 
-    protected bool $toolbarSticky = false;
+    protected string $contentStyle = '';
 
-    // TinyMCE var: document_base_url
-    protected ?string $documentBaseUrl = '';
+    protected bool $textPattern = true;
 
-    // TinyMCE var: relative_urls
-    protected bool $relativeUrls = true;
+    protected string|Closure $language;
 
-    // TinyMCE var: remove_script_host
+    protected string $direction;
+
+    protected int $height = 0;
+
+    protected int $maxHeight = 0;
+
+    protected int $minHeight = 0;
+
+    protected int $width = 0;
+
+    protected int $tinyMaxWidth = 0;
+
+    protected int $minWidth = 500;
+
+    protected bool|string $resize = false;
+
+    protected bool $toolbarSticky = true;
+
+    protected int $toolbarStickyOffset = 64;
+
+    protected string $toolbarMode = 'sliding';
+
+    protected string $toolbarLocation = 'auto';
+
+    protected bool $inlineOption = false;
+
+    protected bool $toolbarPersist = false;
+
+    protected bool $showMenuBar = false;
+
+    protected bool $relativeUrls = false;
+
     protected bool $removeScriptHost = true;
 
-    // TinyMCE var: convert_urls
     protected bool $convertUrls = true;
+
+    protected string|array|bool|Closure $imageList = false;
+
+    protected string|bool|Closure $imagesUploadUrl = false;
+
+    protected bool $imageAdvtab = false;
+
+    protected bool $imageDescription = true;
+
+    protected string|array|bool $imageClassList = false;
+
+    protected array|Closure $customConfigs = [];
+
+    protected ?string $documentBaseUrl = '';
 
     protected string $template;
 
@@ -55,44 +102,94 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
     {
         parent::setUp();
 
+        $this->languageVersion = TinyMce::languageVersion();
+        $this->languagePackage = TinyMce::languagePackage();
+
         $this->language = app()->getLocale();
+        $this->direction = config('filament-forms-tinyeditor.direction', 'ltr');
+        $this->darkMode = config('filament-forms-tinyeditor.darkMode', 'auto');
+        $this->contentStyle = config('filament-forms-tinyeditor.extra.content_style', '');
     }
 
-    public function getToolbarSticky(): bool
+    public function getPlugins(): string
     {
-        return $this->toolbarSticky;
+        $plugins = 'accordion autoresize codesample directionality advlist autolink link image lists charmap preview anchor pagebreak searchreplace wordcount visualblocks visualchars code fullscreen insertdatetime media table emoticons help';
+
+        if ($this->isSimple()) {
+            $plugins = 'autoresize directionality emoticons link wordcount';
+        }
+
+        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.plugins')) {
+            $plugins = config('filament-forms-tinyeditor.profiles.'.$this->profile.'.plugins');
+        }
+
+        return $plugins;
     }
 
-    public function toolbarSticky(bool $toolbarSticky): static
+    public function setExternalPlugins(array $plugins): static
     {
-        $this->toolbarSticky = $toolbarSticky;
+        $this->externalPlugins = $plugins;
 
         return $this;
     }
 
-    public function getMaxHeight(): int
+    public function getExternalPlugins(): string
     {
-        return $this->maxHeight;
+        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.external_plugins')) {
+            return str_replace('"', "'", json_encode(config('filament-forms-tinyeditor.profiles.'.$this->profile.'.external_plugins')));
+        }
+
+        return '{}';
     }
 
-    public function getMinHeight(): int
+    public function getToolbar(): string
     {
-        return $this->minHeight;
+        $toolbar = 'undo redo removeformat | styles | bold italic | rtl ltr | alignjustify alignright aligncenter alignleft | numlist bullist outdent indent accordion | forecolor backcolor | blockquote table toc hr | image link anchor media codesample emoticons | visualblocks print preview wordcount fullscreen help';
+
+        if ($this->isSimple()) {
+            $toolbar = 'removeformat | bold italic | rtl ltr | link emoticons';
+        }
+
+        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.toolbar')) {
+            $toolbar = config('filament-forms-tinyeditor.profiles.'.$this->profile.'.toolbar');
+        }
+
+        return $toolbar;
     }
 
-    public function getPreviewMaxHeight(): int
+    public function getToolbarGroups(): array
     {
-        return $this->previewMaxHeight;
+        $toolbarGroups = config("filament-forms-tinyeditor.profiles.{$this->profile}.toolbar_groups") ?? [];
+
+        if (! empty($this->toolbarGroups)) {
+            $toolbarGroups = $this->toolbarGroups;
+        }
+
+        return $toolbarGroups;
     }
 
-    public function getPreviewMinHeight(): int
+    public function contentStyle(): string
     {
-        return $this->previewMinHeight;
+        return $this->contentStyle;
     }
 
-    public function getFileAttachmentsDirectory(): ?string
+    public function textPattern(bool $textPattern = true): static
     {
-        return filled($directory = $this->evaluate($this->fileAttachmentsDirectory)) ? $directory : config('filament-forms-tinyeditor.profiles.'.$this->profile.'.upload_directory');
+        $this->textPattern = $textPattern;
+
+        return $this;
+    }
+
+    public function getTextPattern(): bool
+    {
+        return $this->textPattern;
+    }
+
+    public function language(string|Closure $language): static
+    {
+        $this->language = $language;
+
+        return $this;
     }
 
     public function getInterfaceLanguage(): string
@@ -136,7 +233,8 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
             'nl' => 'nl',
             'oc' => 'oc',
             'pl' => 'pl',
-            'pt' => 'pt_BR',
+            'pt_PT' => 'pt_PT',
+            'pt_BR' => 'pt_BR',
             'ro' => 'ro',
             'ru' => 'ru',
             'sk' => 'sk',
@@ -151,8 +249,12 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
             'ug' => 'ug',
             'uk' => 'uk',
             'vi' => 'vi',
-            'zh' => 'zh_CN',
-            'zh_TW' => 'zh_TW',
+            'zh' => 'zh-Hans',
+            'zh-CN' => 'zh-Hans',
+            'zh-TW' => 'zh-Hant',
+            'zh-HK' => 'zh_HK',
+            'zh-MO' => 'zh_MO',
+            'zh-SG' => 'zh_SG',
             default => 'en',
         };
     }
@@ -198,7 +300,8 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
             'nl' => 'tinymce-lang-nl',
             'oc' => 'tinymce-lang-oc',
             'pl' => 'tinymce-lang-pl',
-            'pt' => 'tinymce-lang-pt_BR',
+            'pt_PT' => 'tinymce-lang-pt_PT',
+            'pt_BR' => 'tinymce-lang-pt_BR',
             'ro' => 'tinymce-lang-ro',
             'ru' => 'tinymce-lang-ru',
             'sk' => 'tinymce-lang-sk',
@@ -214,52 +317,64 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
             'uk' => 'tinymce-lang-uk',
             'vi' => 'tinymce-lang-vi',
             'zh' => 'tinymce-lang-zh_CN',
-            'zh_TW' => 'tinymce-lang-zh_TW',
+            'zh-cn' => 'tinymce-lang-zh_CN',
+            'zh-tw' => 'tinymce-lang-zh_TW',
+            'zh-hk' => 'tinymce-lang-zh_HK',
+            'zh-mo' => 'tinymce-lang-zh_MO',
+            'zh-sg' => 'tinymce-lang-zh_SG',
             default => 'tinymce',
         };
     }
 
-    public function getPlugins(): string
+    public function getLanguageURL($lang): string
     {
-        if ($this->isSimple()) {
-            return 'autoresize directionality emoticons link wordcount';
-        }
-
-        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.plugins')) {
-            return config('filament-forms-tinyeditor.profiles.'.$this->profile.'.plugins');
-        }
-
-        return 'advlist codesample directionality emoticons fullscreen hr image imagetools link lists media table toc wordcount';
+        return TinyMce::getLanguageURL($lang);
     }
 
-    public function getExternalPlugins(): array
+    public function direction(string $direction): static
     {
-        return $this->externalPlugins ?? [];
-    }
-
-    public function setExternalPlugins(array $plugins): static
-    {
-        $this->externalPlugins = $plugins;
+        $this->direction = $direction;
 
         return $this;
     }
 
-    public function getShowMenuBar(): bool
+    public function rtl(): static
     {
-        return $this->showMenuBar;
+        $this->direction = 'rtl';
+
+        return $this;
     }
 
-    public function getToolbar(): string
+    public function ltr(): static
     {
-        if ($this->isSimple()) {
-            return 'removeformat | bold italic | rtl ltr | link emoticons';
+        $this->direction = 'ltr';
+
+        return $this;
+    }
+
+    public function getDirection()
+    {
+        if (! $this->direction || $this->direction == 'auto') {
+            return match ($this->getInterfaceLanguage()) {
+                'ar' => 'rtl',
+                'fa' => 'rtl',
+                default => 'ltr',
+            };
         }
 
-        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.toolbar')) {
-            return config('filament-forms-tinyeditor.profiles.'.$this->profile.'.toolbar');
-        }
+        return $this->direction;
+    }
 
-        return 'undo redo removeformat | formatselect fontsizeselect | bold italic | rtl ltr | alignjustify alignright aligncenter alignleft | numlist bullist | forecolor backcolor | blockquote table toc hr | image link media codesample emoticons | wordcount fullscreen';
+    public function height(int $height): static
+    {
+        $this->height = $height;
+
+        return $this;
+    }
+
+    public function getHeight(): int
+    {
+        return $this->height;
     }
 
     public function maxHeight(int $maxHeight): static
@@ -269,6 +384,11 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
         return $this;
     }
 
+    public function getMaxHeight(): int
+    {
+        return $this->maxHeight;
+    }
+
     public function minHeight(int $minHeight): static
     {
         $this->minHeight = $minHeight;
@@ -276,42 +396,290 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
         return $this;
     }
 
-    public function previewMaxHeight(int $previewMaxHeight): static
+    public function getMinHeight(): int
     {
-        $this->previewMaxHeight = $previewMaxHeight;
+        return $this->minHeight;
+    }
+
+    public function width(int $width): static
+    {
+        $this->width = $width;
 
         return $this;
     }
 
-    public function previewMinHeight(int $previewMinHeight): static
+    public function getWidth(): int
     {
-        $this->previewMinHeight = $previewMinHeight;
+        return $this->width;
+    }
+
+    public function tinyMaxWidth(int $maxWidth): static
+    {
+        $this->tinyMaxWidth = $maxWidth;
 
         return $this;
     }
 
-    public function isSimple(): bool
+    public function getTinyMaxWidth(): int
     {
-        return (bool) $this->evaluate($this->isSimple);
+        return $this->tinyMaxWidth;
     }
 
-    public function language(string|\Closure $language): static
+    public function minWidth(int $minWidth): static
     {
-        $this->language = $language;
+        $this->minWidth = $minWidth;
 
         return $this;
+    }
+
+    public function getMinWidth(): int
+    {
+        return $this->minWidth;
+    }
+
+    public function resize(bool|string $resize): static
+    {
+        $this->resize = $resize;
+
+        return $this;
+    }
+
+    public function getResize(): bool|string
+    {
+        return is_bool($this->resize) ? $this->resize : "'$this->resize'";
+    }
+
+    public function toolbarSticky(bool $toolbarSticky): static
+    {
+        $this->toolbarSticky = $toolbarSticky;
+
+        return $this;
+    }
+
+    public function getToolbarSticky(): bool
+    {
+        return $this->toolbarSticky;
+    }
+
+    public function toolbarStickyOffset(int $toolbarStickyOffset): static
+    {
+        $this->toolbarStickyOffset = $toolbarStickyOffset;
+
+        return $this;
+    }
+
+    public function getToolbarStickyOffset(): int
+    {
+        return $this->toolbarStickyOffset;
+    }
+
+    public function toolbarMode(string $toolbarMode): static
+    {
+        $this->toolbarMode = $toolbarMode;
+
+        return $this;
+    }
+
+    public function getToolbarMode(): string
+    {
+        return $this->toolbarMode;
+    }
+
+    public function toolbarLocation(string $toolbarLocation): static
+    {
+        $this->toolbarLocation = $toolbarLocation;
+
+        return $this;
+    }
+
+    public function getToolbarLocation(): string
+    {
+        return $this->toolbarLocation;
+    }
+
+    public function inlineTiny(bool $inlineOption = true): static
+    {
+        $this->inlineOption = $inlineOption;
+
+        return $this;
+    }
+
+    public function getInlineOption(): bool
+    {
+        return $this->inlineOption;
+    }
+
+    public function toolbarPersist(bool $toolbarPersist): static
+    {
+        $this->toolbarPersist = $toolbarPersist;
+
+        return $this;
+    }
+
+    public function getToolbarPersist(): bool
+    {
+        return $this->toolbarPersist;
+    }
+
+    public function showMenuBar(bool $condition = true): static
+    {
+        $this->showMenuBar = $condition;
+
+        return $this;
+    }
+
+    public function getShowMenuBar(): bool
+    {
+        return $this->showMenuBar;
+    }
+
+    public function relativeUrls(bool $relativeUrls = true): static
+    {
+        $this->relativeUrls = $relativeUrls;
+
+        return $this;
+    }
+
+    public function getRelativeUrls(): bool
+    {
+        return $this->relativeUrls;
+    }
+
+    public function removeScriptHost(bool $removeScriptHost = true): static
+    {
+        $this->removeScriptHost = $removeScriptHost;
+
+        return $this;
+    }
+
+    public function getRemoveScriptHost(): bool
+    {
+        return $this->removeScriptHost;
+    }
+
+    public function convertUrls(bool $convertUrls = true): static
+    {
+        $this->convertUrls = $convertUrls;
+
+        return $this;
+    }
+
+    public function getConvertUrls(): bool
+    {
+        return $this->convertUrls;
+    }
+
+    public function imageList(string|array|Closure $list): static
+    {
+        if (is_array($list)) {
+            $list = str_replace('"', "'", json_encode($list));
+        }
+
+        $this->imageList = $list;
+
+        return $this;
+    }
+
+    public function getImageList(): string|bool
+    {
+        if (! $this->imageList) {
+            return config('filament-forms-tinyeditor.profiles.'.$this->profile.'.image_list') ?? 'false';
+        }
+
+        if (is_string($this->imageList)) {
+            return $this->imageList;
+        }
+
+        $imageList = $this->evaluate($this->imageList);
+
+        return str_replace('"', "'", json_encode($imageList));
+    }
+
+    public function imagesUploadUrl(string|Closure $url): static
+    {
+        $this->imagesUploadUrl = $url;
+
+        return $this;
+    }
+
+    public function getImagesUploadUrl(): string|bool
+    {
+        if (! $this->imagesUploadUrl) {
+            return config('filament-forms-tinyeditor.profiles.'.$this->profile.'.images_upload_url') ?? '';
+        }
+
+        return $this->evaluate($this->imagesUploadUrl);
+    }
+
+    public function imageAdvtab(bool $condition = true): static
+    {
+        $this->imageAdvtab = $condition;
+
+        return $this;
+    }
+
+    public function isImageAdvtab(): bool
+    {
+        return $this->imageAdvtab;
+    }
+
+    public function imageDescription(bool $condition = true): static
+    {
+        $this->imageDescription = $condition;
+
+        return $this;
+    }
+
+    public function isImageDescription(): bool
+    {
+        return config('filament-forms-tinyeditor.profiles.'.$this->profile.'.image_description') ?? $this->imageDescription;
+    }
+
+    public function imageClassList(string|array $list): static
+    {
+        if (is_array($list)) {
+            $list = str_replace('"', "'", json_encode($list));
+        }
+
+        $this->imageClassList = $list;
+
+        return $this;
+    }
+
+    public function getImageClassList(): ?string
+    {
+        if (! $this->imageClassList) {
+            return null;
+        }
+
+        return $this->imageClassList;
+    }
+
+    public function customConfigs(array|Closure $configs): static
+    {
+        $this->customConfigs = $configs;
+
+        return $this;
+    }
+
+    public function getCustomConfigs(): array
+    {
+        $defaultConfigs = config("filament-forms-tinyeditor.profiles.{$this->profile}.custom_configs", []);
+
+        $customConfigs = $this->evaluate($this->customConfigs) ?? [];
+
+        $mergedConfigs = array_replace_recursive($customConfigs, $defaultConfigs);
+
+        if (empty($mergedConfigs)) {
+            return [];
+        }
+
+        return $mergedConfigs;
     }
 
     public function profile(string $profile): static
     {
         $this->profile = $profile;
-
-        return $this;
-    }
-
-    public function showMenuBar(): static
-    {
-        $this->showMenuBar = true;
 
         return $this;
     }
@@ -323,76 +691,57 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
         return $this;
     }
 
-    public function getDocumentBaseUrl(): ?string
+    public function isSimple(): bool
     {
-        return $this->documentBaseUrl;
+        return (bool) $this->evaluate($this->isSimple);
     }
 
-    public function documentBaseUrl(string $documentBaseUrl): static
+    public function darkMode(): string|bool
     {
-        $this->documentBaseUrl = $documentBaseUrl;
+        return $this->darkMode;
+    }
+
+    public function previewMaxHeight(int $previewMaxHeight): static
+    {
+        $this->previewMaxHeight = $previewMaxHeight;
 
         return $this;
     }
 
-    public function getRelativeUrls(): bool
+    public function getPreviewMaxHeight(): int
     {
-        return $this->relativeUrls;
+        return $this->previewMaxHeight;
     }
 
-    public function setRelativeUrls(bool $relativeUrls): static
+    public function previewMinHeight(int $previewMinHeight): static
     {
-        $this->relativeUrls = $relativeUrls;
+        $this->previewMinHeight = $previewMinHeight;
 
         return $this;
     }
 
-    public function getRemoveScriptHost(): bool
+    public function getPreviewMinHeight(): int
     {
-        return $this->removeScriptHost;
+        return $this->previewMinHeight;
     }
 
-    public function setRemoveScriptHost(bool $removeScriptHost): static
+    public function getFontSizes(): string
     {
-        $this->removeScriptHost = $removeScriptHost;
-
-        return $this;
+        return config('filament-forms-tinyeditor.extra.toolbar.fontsize', '8pt 10pt 12pt 14pt 18pt 24pt 36pt');
     }
 
-    public function getConvertUrls(): bool
+    public function getFontFamilies(): string
     {
-        return $this->convertUrls;
+        return config('filament-forms-tinyeditor.extra.toolbar.fontfamily', 'Andale Mono=andale mono,times; Arial=arial,helvetica,sans-serif; Arial Black=arial black,avant garde; Book Antiqua=book antiqua,palatino; Comic Sans MS=comic sans ms,sans-serif; Courier New=courier new,courier; Georgia=georgia,palatino; Helvetica=helvetica; Impact=impact,chicago; Symbol=symbol; Tahoma=tahoma,arial,helvetica,sans-serif; Terminal=terminal,monaco; Times New Roman=times new roman,times; Trebuchet MS=trebuchet ms,geneva; Verdana=verdana,geneva; Webdings=webdings; Wingdings=wingdings,zapf dingbats');
     }
 
-    public function setConvertUrls(bool $convertUrls): static
+    public function getLicenseKey(): string
     {
-        $this->convertUrls = $convertUrls;
-
-        return $this;
+        return config('filament-forms-tinyeditor.license_key', 'gpl');
     }
 
-    public function template(string $template): static
+    public function getFileAttachmentsDirectory(): ?string
     {
-        $this->template = $template;
-
-        return $this;
-    }
-
-    public function getTemplate(): string
-    {
-        if (empty($this->template)) {
-            return json_encode([]);
-        }
-
-        return json_encode(config('filament-forms-tinyeditor.templates.'.$this->template, []));
-    }
-
-    public function getCustomConfigs(): string
-    {
-        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.custom_configs')) {
-            return '...'.json_encode(config('filament-forms-tinyeditor.profiles.'.$this->profile.'.custom_configs'));
-        }
-
-        return '';
+        return filled($directory = $this->evaluate($this->fileAttachmentsDirectory)) ? $directory : config('filament-forms-tinyeditor.profiles.'.$this->profile.'.upload_directory');
     }
 }
