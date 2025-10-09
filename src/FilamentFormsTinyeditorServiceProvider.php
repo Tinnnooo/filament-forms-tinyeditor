@@ -28,8 +28,7 @@ class FilamentFormsTinyeditorServiceProvider extends PackageServiceProvider
             ->hasAssets()
             ->hasInstallCommand(function (InstallCommand $command) {
                 $command->publishConfigFile()
-                    ->copyAndRegisterServiceProviderInApp()
-                    ->getAssetPackageName();
+                    ->copyAndRegisterServiceProviderInApp();
             });
 
         if (file_exists(__DIR__.'/../../../vendor/tinymce/tinymce')) {
