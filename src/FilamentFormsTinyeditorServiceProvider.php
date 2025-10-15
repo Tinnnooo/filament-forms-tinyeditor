@@ -31,11 +31,16 @@ class FilamentFormsTinyeditorServiceProvider extends PackageServiceProvider
                     ->copyAndRegisterServiceProviderInApp();
             });
 
-        if (file_exists(__DIR__ . '/../../../vendor/tinymce/tinymce')) {
-            $this->publishes([__DIR__ . '/../../../vendor/tinymce/tinymce' => public_path('vendor/tinymce')], 'public');
+        if (file_exists(__DIR__.'/../../../vendor/tinymce/tinymce')) {
+            $this->publishes([__DIR__.'/../../../vendor/tinymce/tinymce' => public_path('vendor/tinymce')], 'public');
         } elseif (file_exists(base_path('vendor/tinymce/tinymce'))) {
             $this->publishes([base_path('vendor/tinymce/tinymce') => public_path('vendor/tinymce')], 'public');
         }
+    }
+
+    public function packageRegistered()
+    {
+        //
     }
 
     public function packageBooted(): void
@@ -62,10 +67,10 @@ class FilamentFormsTinyeditorServiceProvider extends PackageServiceProvider
 
         $provider = config('filament-forms-tinyeditor.provider', 'cloud');
 
-        $tinyMceJs = 'https://cdn.jsdelivr.net/npm/tinymce@' . $tinyMceVersion . '/tinymce.min.js';
+        $tinyMceJs = 'https://cdn.jsdelivr.net/npm/tinymce@'.$tinyMceVersion.'/tinymce.min.js';
 
         if ($tinyMceLincenseKey != 'no-api-key') {
-            $tinyMceJs = 'https://cdn.tiny.cloud/1/' . $tinyMceLincenseKey . '/tinymce/' . $tinyMceVersion . '/tinymce.min.js';
+            $tinyMceJs = 'https://cdn.tiny.cloud/1/'.$tinyMceLincenseKey.'/tinymce/'.$tinyMceVersion.'/tinymce.min.js';
         }
 
         if ($provider == 'vendor') {
@@ -73,9 +78,10 @@ class FilamentFormsTinyeditorServiceProvider extends PackageServiceProvider
         }
 
         FilamentAsset::register([
-            Css::make('tinymce-editor', __DIR__ . '/../resources/css/tinymce-editor.css')->loadedOnRequest(),
+            Css::make('tinymce-editor', __DIR__.'/../resources/css/tinymce-editor.css')->loadedOnRequest(),
             Js::make('tinymce', $tinyMceJs),
-            AlpineComponent::make('tinymce-editor', __DIR__ . '/../resources/dist/tinymce-editor.js'),
+            AlpineComponent::make('tinymce-editor', __DIR__.'/../resources/dist/tinymce-editor.js'),
+            ...$languages,
         ], package: $this->getAssetPackageName());
     }
 

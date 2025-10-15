@@ -1,3 +1,20 @@
 .tox[role="application"]{
     z-index: 0;
 }
+
+body.tox-fullscreen .fi-modal-slide-over-window,
+body.tox-fullscreen .fi-modal-window-ctn,
+body.tox-fullscreen .fi-modal-window {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+    contain: none !important;
+    will-change: auto !important;
+    z-index: 999 !important;
+
+    visibility: hidden !important;
+}
+
+body.tox-fullscreen .tox-fullscreen {
+    visibility: visible !important;
+}

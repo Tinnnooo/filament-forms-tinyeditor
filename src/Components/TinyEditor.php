@@ -5,7 +5,7 @@ namespace Noin\FilamentFormsTinyeditor\Components;
 use Closure;
 use Filament\Forms\Components\Concerns;
 use Filament\Forms\Components\Concerns\HasExtraInputAttributes;
-use Filament\Forms\Components\Contracts;
+use Filament\Forms\Components\Contracts\CanBeLengthConstrained;
 use Filament\Forms\Components\Field;
 use Filament\Support\Concerns\HasExtraAlpineAttributes;
 use Noin\FilamentFormsTinyeditor\TinyMce;
@@ -15,6 +15,7 @@ class TinyEditor extends Field implements CanBeLengthConstrained
     use Concerns\CanBeLengthConstrained;
     use Concerns\HasFileAttachments;
     use Concerns\HasPlaceholder;
+    use Concerns\InteractsWithToolbarButtons;
     use HasExtraAlpineAttributes;
     use HasExtraInputAttributes;
 
@@ -94,9 +95,7 @@ class TinyEditor extends Field implements CanBeLengthConstrained
 
     protected array|Closure $customConfigs = [];
 
-    protected ?string $documentBaseUrl = '';
-
-    protected string $template;
+    public $isModalOpen = false;
 
     protected function setUp(): void
     {
@@ -119,8 +118,8 @@ class TinyEditor extends Field implements CanBeLengthConstrained
             $plugins = 'autoresize directionality emoticons link wordcount';
         }
 
-        if (config('filament-forms-tinyeditor.profiles.' . $this->profile . '.plugins')) {
-            $plugins = config('filament-forms-tinyeditor.profiles.' . $this->profile . '.plugins');
+        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.plugins')) {
+            $plugins = config('filament-forms-tinyeditor.profiles.'.$this->profile.'.plugins');
         }
 
         return $plugins;
@@ -135,8 +134,8 @@ class TinyEditor extends Field implements CanBeLengthConstrained
 
     public function getExternalPlugins(): string
     {
-        if (config('filament-forms-tinyeditor.profiles.' . $this->profile . '.external_plugins')) {
-            return str_replace('"', "'", json_encode(config('filament-forms-tinyeditor.profiles.' . $this->profile . '.external_plugins')));
+        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.external_plugins')) {
+            return str_replace('"', "'", json_encode(config('filament-forms-tinyeditor.profiles.'.$this->profile.'.external_plugins')));
         }
 
         return '{}';
@@ -150,8 +149,8 @@ class TinyEditor extends Field implements CanBeLengthConstrained
             $toolbar = 'removeformat | bold italic | rtl ltr | link emoticons';
         }
 
-        if (config('filament-forms-tinyeditor.profiles.' . $this->profile . '.toolbar')) {
-            $toolbar = config('filament-forms-tinyeditor.profiles.' . $this->profile . '.toolbar');
+        if (config('filament-forms-tinyeditor.profiles.'.$this->profile.'.toolbar')) {
+            $toolbar = config('filament-forms-tinyeditor.profiles.'.$this->profile.'.toolbar');
         }
 
         return $toolbar;
@@ -583,7 +582,7 @@ class TinyEditor extends Field implements CanBeLengthConstrained
     public function getImageList(): string|bool
     {
         if (! $this->imageList) {
-            return config('filament-forms-tinyeditor.profiles.' . $this->profile . '.image_list') ?? 'false';
+            return config('filament-forms-tinyeditor.profiles.'.$this->profile.'.image_list') ?? 'false';
         }
 
         if (is_string($this->imageList)) {
@@ -605,7 +604,7 @@ class TinyEditor extends Field implements CanBeLengthConstrained
     public function getImagesUploadUrl(): string|bool
     {
         if (! $this->imagesUploadUrl) {
-            return config('filament-forms-tinyeditor.profiles.' . $this->profile . '.images_upload_url') ?? '';
+            return config('filament-forms-tinyeditor.profiles.'.$this->profile.'.images_upload_url') ?? '';
         }
 
         return $this->evaluate($this->imagesUploadUrl);
@@ -632,7 +631,7 @@ class TinyEditor extends Field implements CanBeLengthConstrained
 
     public function isImageDescription(): bool
     {
-        return config('filament-forms-tinyeditor.profiles.' . $this->profile . '.image_description') ?? $this->imageDescription;
+        return config('filament-forms-tinyeditor.profiles.'.$this->profile.'.image_description') ?? $this->imageDescription;
     }
 
     public function imageClassList(string|array $list): static
@@ -675,6 +674,18 @@ class TinyEditor extends Field implements CanBeLengthConstrained
         }
 
         return $mergedConfigs;
+    }
+
+    public function openModal()
+    {
+        $this->isModalOpen = true;
+        $this->dispatch('open-tinyeditor-modal');
+    }
+
+    public function closeModal()
+    {
+        $this->isModalOpen = false;
+        $this->dispatch('close-tinyeditor-modal');
     }
 
     public function profile(string $profile): static
@@ -742,6 +753,6 @@ class TinyEditor extends Field implements CanBeLengthConstrained
 
     public function getFileAttachmentsDirectory(): ?string
     {
-        return filled($directory = $this->evaluate($this->fileAttachmentsDirectory)) ? $directory : config('filament-forms-tinyeditor.profiles.' . $this->profile . '.upload_directory');
+        return filled($directory = $this->evaluate($this->fileAttachmentsDirectory)) ? $directory : config('filament-forms-tinyeditor.profiles.'.$this->profile.'.upload_directory');
     }
 }

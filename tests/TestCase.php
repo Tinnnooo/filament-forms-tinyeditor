@@ -1,6 +1,6 @@
 <?php
 
-namespace Mohamedsabil83\FilamentFormsTinyeditor\Tests;
+namespace Noin\FilamentFormsTinyeditor\Tests;
 
 use Noin\FilamentFormsTinyeditor\FilamentFormsTinyeditorServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
