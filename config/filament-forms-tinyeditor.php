@@ -1,6 +1,38 @@
 <?php
 
 return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Version
+    |--------------------------------------------------------------------------
+    */
+    'version' => [
+        'tiny' => '8.1.2',
+        'language' => [
+            // https://cdn.jsdelivr.net/npm/tinymce-i18n@latest/
+            'version' => '25.9.22',
+            'package' => 'langs8',
+        ],
+        'licence_key' => env('TINY_LICENSE_KEY', 'no-api-key'),
+    ],
+
+    // cloud/vendor
+    'provider' => 'cloud',
+    // 'direction' => 'rtl',
+
+    // auto|force|class|media|false|custom
+    'darkMode' => 'auto',
+
+    /** cutsom */
+    'skins' => [
+        // oxide, oxide-dark, tinymce-5, tinymce-5-dark
+        'ui' => 'oxide',
+
+        // dark, default, document, tinymce-5, tinymce-5-dark, writer
+        'content' => 'default',
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Profiles
@@ -41,24 +73,19 @@ return [
 
         /*
           'default' => [
-            'plugins' => 'advlist autoresize codesample directionality emoticons fullscreen hr image imagetools link lists media table toc wordcount',
-            'toolbar' => 'undo redo removeformat | formatselect fontsizeselect | bold italic | rtl ltr | alignjustify alignright aligncenter alignleft | numlist bullist | forecolor backcolor | blockquote table toc hr | image link media codesample emoticons | wordcount fullscreen',
+            'plugins' => 'advlist autoresize emoticons fullscreen link lists table wordcount',
+            'toolbar' => 'undo redo removeformat | blocks fontsize fontfamily | bold italic underline | alignjustify alignright aligncenter alignleft | numlist bullist | forecolor backcolor | blockquote table hr | link emoticons | wordcount fullscreen',
+            'toolbar_groups' => null,
+            'upload_directory' => null,
             'custom_configs' => [
-                'allow_html_in_named_anchor' => true,
-                'link_default_target' => '_blank',
-                'codesample_global_prismjs' => true,
-                'image_advtab' => true,
-                'image_class_list' => [
-                  [
-                    'title' => 'None',
-                    'value' => '',
-                  ],
-                  [
-                    'title' => 'Fluid',
-                    'value' => 'img-fluid',
-                  ],
-              ],
-            ]
+                'contextmenu' => false,
+                'paste_as_text' => false,
+                'paste_retain_style_properties' => 'all',
+                'images_reuse_filename' => true,
+                'content_security_policy' => "img-src 'self' data: blob: https:;",
+                'images_upload_handler' => null,
+                'browser_spellcheck' => true,
+            ],
         ],
         */
 
@@ -77,13 +104,30 @@ return [
     */
 
     'templates' => [
-
         'example' => [
             // content
             ['title' => 'Some title 1', 'description' => 'Some desc 1', 'content' => 'My content'],
             // url
             ['title' => 'Some title 2', 'description' => 'Some desc 2', 'url' => 'http://localhost'],
         ],
+    ],
 
+    /**
+     * this option will load optional language file based on you app locale
+     * example:
+     * languages => [
+     *      'fa' => 'https://cdn.jsdelivr.net/npm/tinymce-i18n@25.9.22/langs8/fa.min.js',
+     *      'es' => 'https://cdn.jsdelivr.net/npm/tinymce-i18n@25.9.22/langs8/es.min.js',
+     *      'ja' => asset('assets/ja.min.js')
+     * ]
+     */
+    'languages' => [],
+
+    'extra' => [
+        'toolbar' => [
+            // 'fontsize' => '10px 12px 13px 14px 16px 18px 20px',
+            // 'fontfamily' => 'Tahoma=tahoma,arial,helvetica,sans-serif;',
+            // 'content_style' => 'body { font-family: "Tahoma", sans-serif; }',
+        ],
     ],
 ];

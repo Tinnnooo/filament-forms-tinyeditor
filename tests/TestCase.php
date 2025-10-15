@@ -2,7 +2,7 @@
 
 namespace Mohamedsabil83\FilamentFormsTinyeditor\Tests;
 
-use Mohamedsabil83\FilamentFormsTinyeditor\FilamentFormsTinyeditorServiceProvider;
+use Noin\FilamentFormsTinyeditor\FilamentFormsTinyeditorServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra

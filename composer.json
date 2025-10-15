@@ -11,17 +11,18 @@
     ],
     "authors": [
         {
-            "name": "Tinno",
+            "name": "Noin",
             "email": "tinnofabregas01@gmail.com",
             "role": "Developer"
         }
     ],
     "homepage": "https://github.com/Tinnnooo/filament-forms-tinyeditor",
     "require": {
-        "php": "^8.3",
-        "filament/forms": "^4.0",
-        "illuminate/contracts": "^11.0 || ^12.0",
-        "spatie/laravel-package-tools": "^1.14.0"
+        "php": "^8.1",
+        "filament/forms": "^3.0",
+        "illuminate/contracts": "^9.0 || ^10.0 || ^11.0 || ^12.0",
+        "spatie/laravel-package-tools": "^1.0",
+        "tinymce/tinymce": "^8.1"
     },
     "require-dev": {
         "larastan/larastan": "^2.2",
