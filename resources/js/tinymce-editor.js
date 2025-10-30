@@ -91,6 +91,7 @@ export default function tinymceEditor({
         disabled,
         locale: locale,
         placeholder: placeholder,
+        isSyncing: false,
 
         init() {
             this.delete();
@@ -98,10 +99,17 @@ export default function tinymceEditor({
             this.initEditor(state.initialValue);
 
             this.$watch("state", (value) => {
-                const editor = this.editor();
-                if (editor && editor.getContent() !== value) {
-                    this.updateEditorContent(value);
-                }
+                if (this.editor().getContent() === value) return;
+                this.startSync();
+
+                const done = () => {
+                    this.editor().off("SetContent", done);
+                    this.finishSync();
+                };
+
+                this.editor().on("SetContent", done);
+
+                this.editor().setContent(value);
             });
         },
 
@@ -216,6 +224,15 @@ export default function tinymceEditor({
                     editor.on("init", function (e) {
                         editors[_this.statePath] = editor.id;
                         if (content != null) {
+                            _this.startSync(editor);
+
+                            const done = () => {
+                                editor.off("SetContent", done);
+                                _this.finishSync(editor);
+                            };
+
+                            editor.on("SetContent", done);
+
                             editor.setContent(content);
                         }
                     });
@@ -418,6 +435,23 @@ export default function tinymceEditor({
                 this.editor().destroy();
                 delete editors[this.statePath];
             }
+        },
+
+        startSync() {
+            if (this.isSyncing) return;
+
+            this.isSyncing = true;
+
+            this.editor().setProgressState(true);
+
+            this.editor().mode.set("readonly");
+        },
+
+        finishSync() {
+            this.isSyncing = false;
+            this.editor().setProgressState(false);
+
+            this.editor().mode.set("design");
         },
     };
 }
