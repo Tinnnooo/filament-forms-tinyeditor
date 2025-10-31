@@ -101,15 +101,12 @@ export default function tinymceEditor({
             this.$watch("state", (value) => {
                 if (this.editor().getContent() === value) return;
                 this.startSync();
-
                 const done = () => {
                     this.editor().off("SetContent", done);
                     this.finishSync();
                 };
-
                 this.editor().on("SetContent", done);
-
-                this.editor().setContent(value);
+                this.editor().setContent(value ?? "");
             });
         },
 
