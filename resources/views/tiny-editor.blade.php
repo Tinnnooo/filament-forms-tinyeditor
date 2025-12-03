@@ -6,17 +6,7 @@
     $livewireKey = $getLivewireKey();
 @endphp
 <x-dynamic-component :component="$fieldWrapperView" :field="$field" class="relative z-0">
-    <div
-        x-data="{
-            isModalOpen: false
-        }"
-        x-init="
-            $el.closest('.fi-modal')?.addEventListener('open-tinyeditor-modal', () => { isModalOpen = true; });
-            $el.closest('.fi-modal')?.addEventListener('close-tinyeditor-modal', () => { isModalOpen = false; });
-            $watch('isModalOpen', value => { $dispatch('modal-visibility-changed', { isOpen: value }); });
-        "
-    >
-        <x-filament::input.wrapper :valid="!$errors->has($statePath)" x-cloak :attributes="\Filament\Support\prepare_inherited_attributes($extraAttributeBag)">
+        <x-filament::input.wrapper :valid="!$errors->has($statePath)" x-cloak :attributes="\Filament\Support\prepare_inherited_attributes($extraAttributeBag)" class="p-1">
             <div
                 wire:ignore
                 x-ignore
@@ -113,11 +103,9 @@
                         'max-height: ' . $getPreviewMaxHeight() . 'px' => $getPreviewMaxHeight() > 0,
                         'min-height: ' . $getPreviewMinHeight() . 'px' => $getPreviewMinHeight() > 0,
                     ])
-                        class="block w-full p-3 overflow-y-auto prose transition duration-75 bg-white border border-gray-300 rounded-lg shadow-sm max-w-none opacity-70 dark:prose-invert dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        class="block w-full p-3 overflow-y-auto prose transition duration-75 rounded-lg shadow-sm max-w-none opacity-70 dark:prose-invert dark:text-white">
                     </div>
                 @endunless
             </div>
         </x-filament::input.wrapper>
-
-    </div>
 </x-dynamic-component>

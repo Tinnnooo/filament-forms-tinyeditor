@@ -1,4 +1,4 @@
-.tox[role="application"]{
+.tox[role="application"] {
     z-index: 0;
 }
 
@@ -17,4 +17,12 @@ body.tox-fullscreen .fi-modal-window {
 
 body.tox-fullscreen .tox-fullscreen {
     visibility: visible !important;
+}
+
+body.tox-fullscreen .fi-topbar-ctn {
+    visibility: hidden !important;
+}
+
+.tox-tinymce {
+    border: 0 !important;
 }
