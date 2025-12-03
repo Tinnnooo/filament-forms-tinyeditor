@@ -50,52 +50,59 @@ export default function tinymceEditor({
 
     return {
         id: null,
-		state: state,
-		statePath: statePath,
-		selector: selector,
-		language: language,
-		language_url: language_url,
-		directionality: directionality,
-		height: height,
-		max_height: max_height,
-		min_height: min_height,
-		width: width,
-		max_width: max_width,
-		min_width: min_width,
-		resize: resize,
-		skin: skin,
-		content_css: content_css,
-		content_style: content_style,
-		plugins: plugins,
-		external_plugins: external_plugins,
-		toolbar: toolbar,
+        state: state,
+        statePath: statePath,
+        selector: selector,
+        language: language,
+        language_url: language_url,
+        directionality: directionality,
+        height: height,
+        max_height: max_height,
+        min_height: min_height,
+        width: width,
+        max_width: max_width,
+        min_width: min_width,
+        resize: resize,
+        skin: skin,
+        content_css: content_css,
+        content_style: content_style,
+        plugins: plugins,
+        external_plugins: external_plugins,
+        toolbar: toolbar,
         toolbar_groups: toolbar_groups,
-		text_patterns: text_patterns,
-		toolbar_sticky: toolbar_sticky,
-		menubar: menubar,
-		relative_urls: relative_urls,
-		remove_script_host: remove_script_host,
-		convert_urls: convert_urls,
-		font_size_formats: font_size_formats,
-		fontfamily: fontfamily,
-		setup: setup,
-		image_list: image_list,
-		image_advtab: image_advtab,
-		image_description: image_description,
-		image_class_list: image_class_list,
-		images_upload_url: images_upload_url,
-		images_upload_base_path: images_upload_base_path,
-		license_key: license_key,
-		custom_configs: custom_configs,
-		updatedAt: Date.now(),
-		disabled,
-		locale: locale,
-		placeholder: placeholder,
+        text_patterns: text_patterns,
+        toolbar_sticky: toolbar_sticky,
+        menubar: menubar,
+        relative_urls: relative_urls,
+        remove_script_host: remove_script_host,
+        convert_urls: convert_urls,
+        font_size_formats: font_size_formats,
+        fontfamily: fontfamily,
+        setup: setup,
+        image_list: image_list,
+        image_advtab: image_advtab,
+        image_description: image_description,
+        image_class_list: image_class_list,
+        images_upload_url: images_upload_url,
+        images_upload_base_path: images_upload_base_path,
+        license_key: license_key,
+        custom_configs: custom_configs,
+        updatedAt: Date.now(),
+        disabled,
+        locale: locale,
+        placeholder: placeholder,
 
         init() {
             this.delete();
 
             this.initEditor(state.initialValue);
+
+            this.$watch("state", (value) => {
+                const editor = this.editor();
+                if (editor && editor.getContent() !== value) {
+                    this.updateEditorContent(value);
+                }
+            });
         },
 
         editor() {
@@ -398,13 +405,13 @@ export default function tinymceEditor({
         },
 
         updateEditorContent(content) {
-			this.editor().setContent(content);
-		},
+            this.editor().setContent(content);
+        },
 
-		putCursorToEnd() {
-			this.editor().selection.select(this.editor().getBody(), true);
-			this.editor().selection.collapse(false);
-		},
+        putCursorToEnd() {
+            this.editor().selection.select(this.editor().getBody(), true);
+            this.editor().selection.collapse(false);
+        },
 
         delete() {
             if (editors[this.statePath]) {
