@@ -89,6 +89,7 @@
             image_class_list: @js($getImageClassList()),
             license_key: '{{ $getLicenseKey() }}',
             custom_configs: @js($getCustomConfigs()),
+            mergeable_blocks: @js($getMergeableBlocks()),
         })"
         class="overflow-hidden" wire:ignore>
         @unless ($isDisabled())

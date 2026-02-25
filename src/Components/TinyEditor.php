@@ -94,6 +94,8 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
 
     protected array|Closure $customConfigs = [];
 
+    protected array $mergeableBlocks = [];
+
     protected ?string $documentBaseUrl = '';
 
     protected string $template;
@@ -660,6 +662,18 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
         $this->customConfigs = $configs;
 
         return $this;
+    }
+
+    public function mergeableBlocks(array $blocks): static
+    {
+        $this->mergeableBlocks = $blocks;
+
+        return $this;
+    }
+
+    public function getMergeableBlocks(): array
+    {
+        return $this->mergeableBlocks;
     }
 
     public function getCustomConfigs(): array
