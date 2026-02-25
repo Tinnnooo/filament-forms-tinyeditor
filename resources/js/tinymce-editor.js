@@ -44,6 +44,7 @@ export default function tinymceEditor({
     image_class_list = null,
     license_key = "gpl",
     custom_configs = {},
+    mergeable_blocks = [],
     removeImagesEventCallback = null,
 }) {
     let editors = window.filamentTinyMceEditors || {};
@@ -100,6 +101,18 @@ export default function tinymceEditor({
 
             this.$watch("state", (value) => {
                 if (this.editor().getContent() === value) return;
+
+                // When mergeable_blocks are configured, detect if the
+                // incoming state change only affects those blocks and
+                // apply it surgically via DOM manipulation so the cursor
+                // position and user-typed text are preserved.
+                if (
+                    mergeable_blocks.length > 0 &&
+                    this.applyMergeableBlockUpdate(value)
+                ) {
+                    return;
+                }
+
                 this.startSync();
                 const done = () => {
                     this.editor().off("SetContent", done);
@@ -108,6 +121,112 @@ export default function tinymceEditor({
                 this.editor().on("SetContent", done);
                 this.editor().setContent(value ?? "");
             });
+        },
+
+        /**
+         * For each block id in mergeable_blocks, detect changes between
+         * incoming Livewire state and the live editor, then apply them
+         * via direct DOM manipulation (no setContent) so the cursor
+         * stays in place.
+         *
+         * Returns true if at least one mergeable block was involved
+         * and the change was handled.
+         */
+        applyMergeableBlockUpdate(incomingContent) {
+            const editor = this.editor();
+            if (!editor) return false;
+
+            let handled = false;
+
+            for (const blockId of mergeable_blocks) {
+                const re = new RegExp(
+                    '<div\\s+id="' +
+                        blockId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
+                        '"\\s*>([\\s\\S]*?)</div>',
+                    "i"
+                );
+                const incomingMatch = incomingContent.match(re);
+                const currentEl = editor.dom.get(blockId);
+
+                // Case 1: Both have the block — update innerHTML only
+                if (currentEl && incomingMatch) {
+                    currentEl.innerHTML = incomingMatch[1];
+                    handled = true;
+                    continue;
+                }
+
+                // Case 2: Incoming has the block, current doesn't —
+                // first-time insertion.  Insert via DOM before
+                // prev-message (or at the end of the body).
+                if (!currentEl && incomingMatch) {
+                    const body = editor.getBody();
+                    const prevMsgEl = editor.dom.get("prev-message");
+
+                    // Save cursor so we can restore it after DOM insertion
+                    let bookmark;
+                    try {
+                        bookmark = editor.selection.getBookmark(2, true);
+                    } catch (_) {
+                        bookmark = null;
+                    }
+
+                    // Build the new nodes
+                    const spacer = editor.dom.create("p", {}, "\u00a0");
+                    const blockDiv = editor.dom.create("div", {
+                        id: blockId,
+                    });
+                    blockDiv.innerHTML = incomingMatch[1];
+
+                    if (prevMsgEl) {
+                        body.insertBefore(spacer, prevMsgEl);
+                        body.insertBefore(blockDiv, prevMsgEl);
+                    } else {
+                        body.appendChild(spacer);
+                        body.appendChild(blockDiv);
+                    }
+
+                    // Restore cursor position
+                    if (bookmark) {
+                        try {
+                            editor.selection.moveToBookmark(bookmark);
+                        } catch (_) {
+                            // If restoration fails, cursor stays wherever
+                            // TinyMCE left it — acceptable for an insert.
+                        }
+                    }
+
+                    handled = true;
+                    continue;
+                }
+
+                // Case 3: Current has the block but incoming doesn't —
+                // block was cleared.  Remove the DOM node.
+                if (currentEl && !incomingMatch) {
+                    // Remove the spacer <p>&nbsp;</p> that precedes the block
+                    const prev = currentEl.previousSibling;
+                    if (
+                        prev &&
+                        prev.nodeName === "P" &&
+                        (prev.innerHTML.trim() === "&nbsp;" ||
+                            prev.innerHTML.trim() === "\u00a0" ||
+                            prev.textContent.trim() === "")
+                    ) {
+                        editor.dom.remove(prev);
+                    }
+                    editor.dom.remove(currentEl);
+                    handled = true;
+                    continue;
+                }
+            }
+
+            if (handled) {
+                // Sync Alpine/Livewire state to reflect actual editor
+                // content.  The $watch will re-fire but the early
+                // equality check will short-circuit it.
+                this.state = editor.getContent();
+            }
+
+            return handled;
         },
 
         editor() {
