@@ -95,6 +95,8 @@ class TinyEditor extends Field implements CanBeLengthConstrained
 
     protected array|Closure $customConfigs = [];
 
+    protected array $mergeableBlocks = [];
+
     public $isModalOpen = false;
 
     protected function setUp(): void
@@ -674,6 +676,18 @@ class TinyEditor extends Field implements CanBeLengthConstrained
         }
 
         return $mergedConfigs;
+    }
+
+    public function mergeableBlocks(array $blocks): static
+    {
+        $this->mergeableBlocks = $blocks;
+
+        return $this;
+    }
+
+    public function getMergeableBlocks(): array
+    {
+        return $this->mergeableBlocks;
     }
 
     public function openModal()
