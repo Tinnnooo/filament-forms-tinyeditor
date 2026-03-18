@@ -1,6 +1,7 @@
 @php
     $extraAttributeBag = $getExtraAttributeBag();
     $fieldWrapperView = $getFieldWrapperView();
+    $key = $getKey();
     $statePath = $getStatePath();
     $textareaID = 'tiny-editor-'.str_replace(['.','#','$'], '-', $getId().'-'.rand());
     $livewireKey = $getLivewireKey();
@@ -94,10 +95,28 @@
                     license_key: '{{ $getLicenseKey() }}',
                     custom_configs: @js($getCustomConfigs()),
                     mergeable_blocks: @js($getMergeableBlocks()),
-                })"
+                    getMentionSourceResultsUsing: async (search) => {
+                        return await $wire.callSchemaComponentMethod(
+                            @js($key),
+                            'getMentionSourceResultsForJs',
+                            { search }
+                        )
+                    },
+                    mention_mode: '{{ $getMentionMode() }}',
+                    afterMentionSelected: async (data) => {
+                        await $wire.callSchemaComponentMethod(
+                            @js($key),
+                            'afterMentionSelected',
+                            { data }
+                        );
+                    },
+        })"
                 >
                 @unless ($isDisabled())
-                    <textarea id="{{ $textareaID }}" x-ref="tinymce" placeholder="{{ $getPlaceholder() }}">
+                    <textarea id="{{ $textareaID }}" x-ref="tinymce" placeholder="{{ $getPlaceholder() }}" {{ $getExtraInputAttributeBag()
+                        ->merge([
+                            $applyStateBindingModifiers('wire:model') => $statePath,
+                        ], escape: false) }}>
                     </textarea>
                 @else
                     <div x-html="state" @style([
