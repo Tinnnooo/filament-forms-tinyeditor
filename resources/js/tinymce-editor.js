@@ -380,7 +380,7 @@ export default function tinymceEditor({
                             trigger: "@",
                             minChars: 0,
                             columns: 1,
-                            highlightOn: ["user_name", "user_email"],
+                            highlightOn: ["item_label", "item_description"],
                             fetch: async  function (pattern) {
                                 return new Promise(async (resolve) => {
                                     const lowerPattern = pattern.toLowerCase();
@@ -404,7 +404,8 @@ export default function tinymceEditor({
                                                         },
                                                         {
                                                             type: 'cardtext',
-                                                            text: item.description || ''
+                                                            text: item.description || '',
+                                                            name: 'item_description',
                                                         }
                                                     ]
                                                 }
