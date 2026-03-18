@@ -8,6 +8,7 @@ use Filament\Forms\Components\Concerns\HasExtraInputAttributes;
 use Filament\Forms\Components\Contracts;
 use Filament\Forms\Components\Field;
 use Filament\Support\Concerns\HasExtraAlpineAttributes;
+use Illuminate\Contracts\Support\Arrayable;
 use Noin\FilamentFormsTinyeditor\TinyMce;
 
 class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Contracts\HasFileAttachments
@@ -96,9 +97,17 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
 
     protected array $mergeableBlocks = [];
 
+    protected ?Closure $getMentionSourceResultsUsing = null;
+
+    protected string $mentionMode = 'text';
+
     protected ?string $documentBaseUrl = '';
 
     protected string $template;
+
+    protected ?Closure $transformOptionsForJsUsing = null;
+
+    protected ?Closure $afterMentionSelect = null;
 
     protected function setUp(): void
     {
@@ -111,6 +120,26 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
         $this->direction = config('filament-forms-tinyeditor.direction', 'ltr');
         $this->darkMode = config('filament-forms-tinyeditor.darkMode', 'auto');
         $this->contentStyle = config('filament-forms-tinyeditor.extra.content_style', '');
+
+        $this->transformOptionsForJsUsing(static function (array $options): array {
+            return collect($options)
+                ->map(function ($label, $value) {
+                    if (is_array($label)) {
+                        return [
+                            'label' => data_get($label, 'label', $value),
+                            'value' => data_get($label, 'value', $value),
+                            'description' => data_get($label, 'description', null),
+                        ];
+                    }
+
+                    return [
+                        'label' => $label,
+                        'value' => $value,
+                    ];
+                })
+                ->values()
+                ->toArray();
+        });
     }
 
     public function getPlugins(): string
@@ -676,6 +705,49 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
         return $this->mergeableBlocks;
     }
 
+    public function getMentionSourceResultsUsing(?Closure $callback): static
+    {
+        $this->getMentionSourceResultsUsing = $callback;
+
+        return $this;
+    }
+
+    public function getMentionSourceResults(string $search): array
+    {
+        if (! $this->getMentionSourceResultsUsing) {
+            return [];
+        }
+
+        $results = $this->evaluate($this->getMentionSourceResultsUsing, [
+            'query' => $search,
+            'search' => $search,
+            'searchQuery' => $search,
+        ]) ?? [];
+
+        if ($results instanceof Arrayable) {
+            $results = $results->toArray();
+        }
+
+        return $results;
+    }
+
+    public function getMentionSourceResultsForJs(string $search): array
+    {
+        return $this->transformOptionsForJs($this->getMentionSourceResults($search));
+    }
+
+    public function mentionMode(string $mode): static
+    {
+        $this->mentionMode = $mode;
+
+        return $this;
+    }
+
+    public function getMentionMode(): string
+    {
+        return $this->mentionMode;
+    }
+
     public function getCustomConfigs(): array
     {
         $defaultConfigs = config("filament-forms-tinyeditor.profiles.{$this->profile}.custom_configs", []);
@@ -757,5 +829,43 @@ class TinyEditor extends Field implements Contracts\CanBeLengthConstrained, Cont
     public function getFileAttachmentsDirectory(): ?string
     {
         return filled($directory = $this->evaluate($this->fileAttachmentsDirectory)) ? $directory : config('filament-forms-tinyeditor.profiles.'.$this->profile.'.upload_directory');
+    }
+
+    public function transformOptionsForJsUsing(?Closure $callback): static
+    {
+        $this->transformOptionsForJsUsing = $callback;
+
+        return $this;
+    }
+
+    public function afterMentionSelect(?Closure $callback): static
+    {
+        $this->afterMentionSelect = $callback;
+
+        return $this;
+    }
+
+    public function afterMentionSelected($data): void
+    {
+        $this->evaluate($this->afterMentionSelect, [
+            'data' => $data,
+        ]);
+    }
+
+    protected function transformOptionsForJs(array $options): array
+    {
+        if (empty($options)) {
+            return [];
+        }
+
+        $transformedOptions = $this->evaluate($this->transformOptionsForJsUsing, [
+            'options' => $options,
+        ]);
+
+        if ($transformedOptions instanceof Arrayable) {
+            return $transformedOptions->toArray();
+        }
+
+        return $transformedOptions ?? [];
     }
 }

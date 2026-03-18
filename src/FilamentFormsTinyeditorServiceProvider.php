@@ -2,10 +2,13 @@
 
 namespace Noin\FilamentFormsTinyeditor;
 
+use Filament\Forms\ComponentContainer;
+use Filament\Forms\Form;
 use Filament\Support\Assets\AlpineComponent;
 use Filament\Support\Assets\Css;
 use Filament\Support\Assets\Js;
 use Filament\Support\Facades\FilamentAsset;
+use Noin\FilamentFormsTinyeditor\Components\TinyEditor;
 use Spatie\LaravelPackageTools\Commands\InstallCommand;
 use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -40,6 +43,8 @@ class FilamentFormsTinyeditorServiceProvider extends PackageServiceProvider
 
     public function packageBooted(): void
     {
+        $this->setupComponentsForEditor();
+
         $tinyMceVersion = config('filament-forms-tinyeditor.version.tiny', '8.1.2');
         $tinyMceLincenseKey = config('filament-forms-tinyeditor.version.license_key', 'no-api-key');
         $tinyMceLanguages = TinyMce::getLanguages();
@@ -82,5 +87,46 @@ class FilamentFormsTinyeditorServiceProvider extends PackageServiceProvider
     protected function getAssetPackageName(): ?string
     {
         return 'noin/filament-forms-tinyeditor';
+    }
+
+    private function setupComponentsForEditor(): void
+    {
+        ComponentContainer::macro('getMentionSourceResults', function (string $statePath, string $search) {
+            /** @var Form $this */
+            foreach ($this->getComponents() as $component) {
+                if ($component instanceof TinyEditor && $component->getStatePath() === $statePath) {
+                    return $component->getMentionSourceResultsForJs($search);
+                }
+
+                foreach ($component->getChildComponentContainers() as $container) {
+                    if ($container->isHidden()) {
+                        continue;
+                    }
+
+                    if ($results = $container->getMentionSourceResults($statePath, $search)) {
+                        return $results;
+                    }
+                }
+            }
+
+            return [];
+        });
+
+        ComponentContainer::macro('afterMentionSelected', function (string $statePath, $data) {
+            /** @var Form $this */
+            foreach ($this->getComponents() as $component) {
+                if ($component instanceof TinyEditor && $component->getStatePath() === $statePath) {
+                    $component->afterMentionSelected($data);
+                }
+
+                foreach ($component->getChildComponentContainers() as $container) {
+                    if ($container->isHidden()) {
+                        continue;
+                    }
+
+                    $container->afterMentionSelected($statePath, $data);
+                }
+            }
+        });
     }
 }
