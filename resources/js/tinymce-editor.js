@@ -45,6 +45,9 @@ export default function tinymceEditor({
     license_key = "gpl",
     custom_configs = {},
     mergeable_blocks = [],
+    getMentionSourceResultsUsing,
+    mention_mode = "text",
+    afterMentionSelected,
     removeImagesEventCallback = null,
 }) {
     let editors = window.filamentTinyMceEditors || {};
@@ -373,6 +376,81 @@ export default function tinymceEditor({
 
                     if (typeof setup === "function") {
                         setup(editor);
+                    }
+
+                    // Register @mention autocompleter when getMentionSourceResultsUsing is provided
+                    if (getMentionSourceResultsUsing) {
+                        editor.ui.registry.addAutocompleter("mentions", {
+                            trigger: "@",
+                            minChars: 0,
+                            columns: 1,
+                            highlightOn: ["item_label", "item_description"],
+                            fetch: async  function (pattern) {
+                                return new Promise(async (resolve) => {
+                                    const lowerPattern = pattern.toLowerCase();
+
+                                    const items = await getMentionSourceResultsUsing(lowerPattern);
+
+                                    const results = items.map(function (item) {
+                                        return {
+                                            type: 'cardmenuitem',
+                                            value: JSON.stringify(item),
+                                            label: item.label,
+                                            items: [
+                                                {
+                                                    type: 'cardcontainer',
+                                                    direction: 'vertical',
+                                                    items: [
+                                                        {
+                                                            type: 'cardtext',
+                                                            text: item.label,
+                                                            name: 'item_label',
+                                                        },
+                                                        {
+                                                            type: 'cardtext',
+                                                            text: item.description || '',
+                                                            name: 'item_description',
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    });
+
+                                    resolve(results);
+                                });
+                            },
+                            onAction: async function (autocompleteApi, rng, value) {
+                                editor.selection.setRng(rng);
+                                let data = JSON.parse(value);
+                                let html;
+
+                                if (
+                                    mention_mode === "mailto" &&
+                                    data.value
+                                ) {
+                                    html =
+                                        '<a href="mailto:' +
+                                        data.value +
+                                        '">@' +
+                                        data.label +
+                                        "</a>&nbsp;";
+                                } else {
+                                    html =
+                                        '<span style="color: #2563eb; font-weight: 600;">@' +
+                                        data.label +
+                                        "</span>&nbsp;";
+                                }
+
+                                editor.insertContent(html);
+
+                                if(afterMentionSelected){
+                                    await afterMentionSelected(data);
+                                }
+
+                                autocompleteApi.hide();
+                            },
+                        });
                     }
                 },
                 images_upload_handler: (blobInfo, progress) =>
