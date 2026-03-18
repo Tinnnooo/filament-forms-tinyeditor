@@ -90,10 +90,20 @@
             license_key: '{{ $getLicenseKey() }}',
             custom_configs: @js($getCustomConfigs()),
             mergeable_blocks: @js($getMergeableBlocks()),
+            getMentionSourceResultsUsing: async (search) => {
+                return await $wire.getMentionSourceResults(@js($statePath), search);
+            },
+            mention_mode: '{{ $getMentionMode() }}',
+            afterMentionSelected: async (data) => {
+                await $wire.afterMentionSelected(@js($statePath), data);
+            },
         })"
         class="overflow-hidden" wire:ignore>
         @unless ($isDisabled())
-            <textarea id="{{ $textareaID }}" x-ref="tinymce" placeholder="{{ $getPlaceholder() }}">
+            <textarea id="{{ $textareaID }}" x-ref="tinymce" placeholder="{{ $getPlaceholder() }}" {{ $getExtraInputAttributeBag()
+                        ->merge([
+                            $applyStateBindingModifiers('wire:model') => $statePath,
+                        ], escape: false) }}>
             </textarea>
         @else
             <div x-html="state" @style([
