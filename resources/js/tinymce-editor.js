@@ -50,7 +50,9 @@ export default function tinymceEditor({
     afterMentionSelected,
     removeImagesEventCallback = null,
 }) {
-    let editors = window.filamentTinyMceEditors || {};
+    window.filamentTinyMceEditors = window.filamentTinyMceEditors || {};
+
+    const editors = window.filamentTinyMceEditors;
 
     return {
         id: null,
@@ -98,18 +100,23 @@ export default function tinymceEditor({
         placeholder: placeholder,
         isSyncing: false,
 
+        unwatchState: null,
+        mutationObserver: null,
+        destroyed: false,
+
         init() {
+            this.destroyed = false;
+
             this.delete();
 
             this.initEditor(state.initialValue);
 
-            this.$watch("state", (value) => {
-                if (this.editor().getContent() === value) return;
+            this.unwatchState = this.$watch("state", (value) => {
+                const editor = this.editor();
 
-                // When mergeable_blocks are configured, detect if the
-                // incoming state change only affects those blocks and
-                // apply it surgically via DOM manipulation so the cursor
-                // position and user-typed text are preserved.
+                if(!editor || editor.removed) return;
+                if (editor.getContent() === value) return;
+
                 if (
                     this.mergeable_blocks.length > 0 &&
                     this.applyMergeableBlockUpdate(value)
@@ -120,27 +127,69 @@ export default function tinymceEditor({
                 this.startSync();
 
                 const done = () => {
-                    this.editor().off("SetContent", done);
+                    editor.off("SetContent", done);
                     this.finishSync();
                 };
 
-                this.editor().on("SetContent", done);
-                this.editor().setContent(value ?? "");
+                editor.on("SetContent", done);
+                editor.setContent(value ?? "");
             });
         },
 
-        /**
-         * For each block id in mergeable_blocks, detect changes between
-         * incoming Livewire state and the live editor, then apply them
-         * via direct DOM manipulation (no setContent) so the cursor
-         * stays in place.
-         *
-         * Returns true if at least one mergeable block was involved
-         * and the change was handled.
-         */
+        destroy(){
+            this.destroyed = true;
+
+            if (typeof this.unwatchState === "function") {
+                this.unwatchState();
+            }
+
+            this.unwatchState = null;
+
+            this.mutationObserver?.disconnect();
+            this.mutationObserver = null;
+
+            this.delete();
+
+            this.id = null;
+            this.isSyncing = false;
+        },
+
+        editor() {
+            const editorId = editors[this.statePath];
+
+            if (!editorId) return null;
+
+            return tinymce.get(editorId) || null;
+        }, 
+
+        delete() {
+            const editorId = editors[this.statePath];
+            const editor = editorId ? tinymce.get(editorId) : null;
+
+            this.mutationObserver?.disconnect();
+            this.mutationObserver = null;
+
+            if(editor) {
+                try{
+                    tinymce.remove(editor);
+                } catch (_) {
+                    // 
+                }
+            }
+
+            delete editors[this.statePath];
+
+            if(Array.isArray(window.tinySettingsCopy)) {
+                window.tinySettingsCopy = window.tinySettingsCopy.filter(
+                    (settings) => settings.id !== editorId
+                );
+            }
+        },
+
         applyMergeableBlockUpdate(incomingContent) {
             const editor = this.editor();
-            if (!editor) return false;
+
+            if (!editor || editor.removed || !incomingContent) return false;
 
             let handled = false;
 
@@ -234,10 +283,6 @@ export default function tinymceEditor({
             }
 
             return handled;
-        },
-
-        editor() {
-            return tinymce.get(editors[this.statePath]);
         },
 
         initEditor(content) {
@@ -335,17 +380,28 @@ export default function tinymceEditor({
                     }
 
                     editor.on("blur", function (e) {
+                        if(_this.destroyed) return;
+
                         _this.updatedAt = Date.now();
                         _this.state = editor.getContent();
                     });
 
                     editor.on("change", function (e) {
+                        if(_this.destroyed) return;
+
                         _this.updatedAt = Date.now();
                         _this.state = editor.getContent();
                     });
 
                     editor.on("init", function (e) {
+                        if(_this.destroyed){
+                            tinymce.remove(editor);
+                            return;
+                        };
+
                         editors[_this.statePath] = editor.id;
+                        _this.id = editor.id;
+
                         if (content != null) {
                             _this.startSync(editor);
 
@@ -361,14 +417,16 @@ export default function tinymceEditor({
                     });
 
                     editor.on("OpenWindow", function (e) {
-                        let target = e.target.container.closest(".fi-modal");
+                        const target = e.target.container.closest(".fi-modal");
+
                         if (target) {
                             target.setAttribute("x-trap.noscroll", "false");
                         }
                     });
 
                     editor.on("CloseWindow", function (e) {
-                        let target = e.target.container.closest(".fi-modal");
+                        const target = e.target.container.closest(".fi-modal");
+
                         if (target) {
                             target.setAttribute("x-trap.noscroll", "isOpen");
                         }
@@ -498,22 +556,25 @@ export default function tinymceEditor({
                     }),
 
                 init_instance_callback: function (editor) {
-                    var MutationObserver =
+                    const MutationObserver =
                         window.MutationObserver ||
                         window.WebKitMutationObserver ||
                         window.MozMutationObserver;
 
-                    var isEnabled =
+                    const isEnabled =
                         removeImagesEventCallback &&
                         typeof removeImagesEventCallback === "function";
 
-                    if (!isEnabled) return;
+                    if (!MutationObserver || !isEnabled) return;
 
-                    var observer = new MutationObserver(function (
-                        mutations,
-                        instance
+                    _this.mutationObserver?.disconnect();
+
+                    _this.mutationObserver = new MutationObserver(function (
+                        mutations
                     ) {
-                        var addedImages = [];
+                        if (_this.destroyed) return;
+
+                        const addedImages = [];
 
                         mutations.forEach(function (mutationRecord) {
                             Array.from(mutationRecord.addedNodes).forEach(
@@ -536,11 +597,11 @@ export default function tinymceEditor({
                                         return;
                                     }
 
-                                    var imgs =
+                                    const imgs =
                                         currentNode.getElementsByTagName("img");
+
                                     Array.from(imgs).forEach(function (img) {
-                                        if (addedImages.indexOf(img.src) >= 0)
-                                            return;
+                                        if (addedImages.includes(img.src)) return;
 
                                         addedImages.push(
                                             img.getAttribute("src")
@@ -550,7 +611,7 @@ export default function tinymceEditor({
                             );
                         });
 
-                        var removedImages = [];
+                        const removedImages = [];
 
                         mutations.forEach(function (mutationRecord) {
                             Array.from(mutationRecord.removedNodes).forEach(
@@ -560,12 +621,7 @@ export default function tinymceEditor({
                                         currentNode.className !==
                                             "mce-clonedresizable"
                                     ) {
-                                        if (
-                                            removedImages.indexOf(
-                                                currentNode.src
-                                            ) >= 0
-                                        )
-                                            return;
+                                        if (removedImages.includes(currentNode.src)) return;
 
                                         removedImages.push(
                                             currentNode.getAttribute("src")
@@ -574,18 +630,15 @@ export default function tinymceEditor({
                                     }
 
                                     if (currentNode.nodeType === 1) {
-                                        var imgs =
+                                        const imgs =
                                             currentNode.getElementsByTagName(
                                                 "img"
                                             );
+
                                         Array.from(imgs).forEach(function (
                                             img
                                         ) {
-                                            if (
-                                                addedImages.indexOf(img.src) >=
-                                                0
-                                            )
-                                                return;
+                                            if (addedImages.includes(img.src)) return;
 
                                             addedImages.push(
                                                 img.getAttribute("src")
@@ -597,7 +650,8 @@ export default function tinymceEditor({
                         });
 
                         removedImages.forEach(function (imageSrc) {
-                            if (addedImages.indexOf(imageSrc) >= 0) return;
+                            if (addedImages.includes(imageSrc)) return;
+
                             if (
                                 removeImagesEventCallback &&
                                 typeof removeImagesEventCallback === "function"
@@ -607,7 +661,7 @@ export default function tinymceEditor({
                         });
                     });
 
-                    observer.observe(editor.getBody(), {
+                    _this.mutationObserver.observe(editor.getBody(), {
                         childList: true,
                         subtree: true,
                     });
@@ -620,36 +674,44 @@ export default function tinymceEditor({
         },
 
         updateEditorContent(content) {
-            this.editor().setContent(content);
+            const editor = this.editor();
+            
+            if (!editor || editor.removed) return;
+
+            editor.setContent(content);
         },
 
         putCursorToEnd() {
-            this.editor().selection.select(this.editor().getBody(), true);
-            this.editor().selection.collapse(false);
-        },
+            const editor = this.editor();
 
-        delete() {
-            if (editors[this.statePath]) {
-                this.editor().destroy();
-                delete editors[this.statePath];
-            }
+            if (!editor || editor.removed) return;
+
+            editor.selection.select(editor.getBody(), true);
+            editor.selection.collapse(false);
         },
 
         startSync() {
+            const editor = this.editor();
+
+            if(!editor || editor.removed || this.isSyncing) return;
+
             if (this.isSyncing) return;
 
             this.isSyncing = true;
 
-            this.editor().setProgressState(true);
-
-            this.editor().mode.set("readonly");
+            editor.setProgressState(true);
+            editor.mode.set("readonly");
         },
 
         finishSync() {
-            this.isSyncing = false;
-            this.editor().setProgressState(false);
+            const editor = this.editor();
 
-            this.editor().mode.set("design");
+            this.isSyncing = false;
+
+            if(!editor || editor.removed) return;
+
+            editor.setProgressState(false);
+            editor.mode.set("design");
         },
     };
 }
