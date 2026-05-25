@@ -5,6 +5,9 @@ namespace Noin\FilamentFormsTinyeditor\Components;
 use Closure;
 use Filament\Forms\Components\Concerns;
 use Filament\Forms\Components\Concerns\HasExtraInputAttributes;
+use Filament\Forms\Components\Concerns\HasFileAttachments;
+use Filament\Forms\Components\Concerns\HasPlaceholder;
+use Filament\Forms\Components\Concerns\InteractsWithToolbarButtons;
 use Filament\Forms\Components\Contracts\CanBeLengthConstrained;
 use Filament\Forms\Components\Field;
 use Filament\Support\Components\Attributes\ExposedLivewireMethod;
@@ -16,11 +19,11 @@ use Noin\FilamentFormsTinyeditor\TinyMce;
 class TinyEditor extends Field implements CanBeLengthConstrained
 {
     use Concerns\CanBeLengthConstrained;
-    use Concerns\HasFileAttachments;
-    use Concerns\HasPlaceholder;
-    use Concerns\InteractsWithToolbarButtons;
     use HasExtraAlpineAttributes;
     use HasExtraInputAttributes;
+    use HasFileAttachments;
+    use HasPlaceholder;
+    use InteractsWithToolbarButtons;
 
     protected string $view = 'filament-forms-tinyeditor::tiny-editor';
 
