@@ -26,3 +26,7 @@ body.tox-fullscreen .fi-topbar-ctn {
 .tox-tinymce {
     border: 0 !important;
 }
+
+.prose span[style*="color"]>strong {
+    color: inherit;
+}
