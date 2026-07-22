@@ -438,45 +438,63 @@ export default function tinymceEditor({
 
                     // Register @mention autocompleter when getMentionSourceResultsUsing is provided
                     if (getMentionSourceResultsUsing) {
+                        const debouncePromise = (fn, delay) => {
+                            let timeoutId;
+                            return (...args) => {
+                                return new Promise((resolve, reject) => {
+                                    clearTimeout(timeoutId);
+                                    timeoutId = setTimeout(async () => {
+                                        try {
+                                            const result = await fn(...args);
+                                            resolve(result);
+                                        } catch (error ){
+                                            reject(error);
+                                        }
+                                    }, delay);
+                                });
+                            };
+                        };
+
+                        const fetchMentionsDebounced = debouncePromise(async (pattern) => {
+                            const lowerPattern = pattern.toLowerCase();
+                            const items = await getMentionSourceResultsUsing(lowerPattern);
+
+                            console.log('test');
+
+                            return items.map(function (item) {
+                                return {
+                                    type: 'cardmenuitem',
+                                    value: JSON.stringify(item),
+                                    label: item.label,
+                                    items: [
+                                        {
+                                            type: 'cardcontainer',
+                                            direction: 'vertical',
+                                            items: [
+                                                {
+                                                    type: 'cardtext',
+                                                    text: item.label,
+                                                    name: 'item_label',
+                                                },
+                                                {
+                                                    type: 'cardtext',
+                                                    text: item.description || '',
+                                                    name: 'item_description',
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                };
+                            });
+                        }, 500);
+
                         editor.ui.registry.addAutocompleter("mentions", {
                             trigger: "@",
                             minChars: 0,
                             columns: 1,
                             highlightOn: ["item_label", "item_description"],
-                            fetch: async  function (pattern) {
-                                return new Promise(async (resolve) => {
-                                    const lowerPattern = pattern.toLowerCase();
-
-                                    const items = await getMentionSourceResultsUsing(lowerPattern);
-
-                                    const results = items.map(function (item) {
-                                        return {
-                                            type: 'cardmenuitem',
-                                            value: JSON.stringify(item),
-                                            label: item.label,
-                                            items: [
-                                                {
-                                                    type: 'cardcontainer',
-                                                    direction: 'vertical',
-                                                    items: [
-                                                        {
-                                                            type: 'cardtext',
-                                                            text: item.label,
-                                                            name: 'item_label',
-                                                        },
-                                                        {
-                                                            type: 'cardtext',
-                                                            text: item.description || '',
-                                                            name: 'item_description',
-                                                        }
-                                                    ]
-                                                }
-                                            ]
-                                        }
-                                    });
-
-                                    resolve(results);
-                                });
+                            fetch: function (pattern) {
+                                return fetchMentionsDebounced(pattern);
                             },
                             onAction: async function (autocompleteApi, rng, value) {
                                 editor.selection.setRng(rng);
